@@ -57,12 +57,12 @@ abstract class Defender_Core {
 	public static function instance($name = 'def', $confn = 'defender', $config = NULL) {
 		if (CRYPT_BLOWFISH !== 1) // Если сервер не поддерживает bcrypt, то генерируем исключение
 			throw new Defender_Exception('Данный сервер не поддерживает возможность хэширования bcrypt.');
-		if (!isset($_instances[$name])) { // Если не создан экземпляр класса
+		if (!isset(self::$_instances[$name])) { // Если не создан экземпляр класса
 			$_config = Arr::merge(Kohana::$config->load($confn)->as_array(), $config); // Загружаем конфигурационные данные
 			$class = ucfirst($confn);
-			$_instances[$name] = new $class($name, $_config); // Создаем экземпляр класса и помещаем в массив экземпляров
+			self::$_instances[$name] = new $class($name, $_config); // Создаем экземпляр класса и помещаем в массив экземпляров
 		}
-		return $_instances[$name]; // Возвращаем созданный экземпляр
+		return self::$_instances[$name]; // Возвращаем созданный экземпляр
 	}
 	/**
 	 * Добавляет новое правило, или изменяет существующую роль и одно правило данной роли.
