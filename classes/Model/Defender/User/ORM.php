@@ -69,8 +69,9 @@ abstract class Model_Defender_User_ORM extends ORM {
 	 * @see Kohana_ORM::save()
 	 */
 	public function save(Validation $validation = NULL) {
+		$config = Kohana::$config->load($this->_config);
 		if (array_key_exists($config['uattr']['password'], $this->_changed))
-			$this->_object[$config['uattr']['password']] = Defender::instance($this->_config)->hash($this->_object[$config['uattr']['password']]);
+			$this->_object[$config['uattr']['password']] = Defender::instance()->hash($this->_object[$config['uattr']['password']]);
 		return parent::save($validation);
 	}
 }

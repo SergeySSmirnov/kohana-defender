@@ -214,9 +214,8 @@ abstract class Defender_Core {
 	 * @return Session
 	 */
 	public function get_session($id = NULL) {
-		if (!isset($this->_sess)) { // Если сессия не определена, то иниализируем ее
+		if (!isset($this->_sess)) // Если сессия не определена, то иниализируем ее
 			$this->_sess = Session::instance($this->_config['session']['type'], $id, $this->_config['session']['expiration_session'], $this->_config['session']['expiration_cookie']);
-		}
 		return $this->_sess; // Возвращает текущую сессию
 	}
 	/**
@@ -262,7 +261,7 @@ abstract class Defender_Core {
 				throw new Defender_Exception('Вы исчерпали лимит попыток доступа.');
 			}
 			if (isset($this->_config['uattr']['failed_attempts']) AND // Если в конфигурации определен параметр число безуспешных попыток входа 
-				isset($this->_config['uattr']['last_attempt']) AND // и определен в конфигурации определен параметр дата и время последней попытки входа
+				isset($this->_config['uattr']['last_attempt']) AND // и в конфигурации определен параметр дата и время последней попытки входа
 				count(Arr::get($this->_config, 'rate_limits', array()))) // и в конфигурации определен массив соответствия числа попыток входа и времени блокировки (для защиты от подбора паролей)  
 			{
 				$attempt = 1 + (int)$user->{$this->_config['uattr']['failed_attempts']}; // Увеличиваем число безуспешных попыток входа
@@ -371,7 +370,7 @@ abstract class Defender_Core {
 		}
 		// Загружаем пользователя из БД, если данные хранятся в cookie
 		if ($this->_config['session']['use']) { // Если необходимо использовать сессию
-			if (($token = Cookie::get($this->_config['cookie']['key']))) { // Извлекаем данные из cookie, и разбираем их (если они существуют)
+			if ($token = Cookie::get($this->_config['cookie']['key'])) { // Извлекаем данные из cookie, и разбираем их (если они существуют)
 				list($hash, $username) = explode('.', $token, 2); // Инициализируем переменные хэш и имя пользователя массивом из двух подстрок, извлеченных $token
 				if (strlen($hash) === 32 AND $username !== NULL) { // Если длина хэша корректна, и имя пользователя определено
 					$user = $this->load_user($username); // Загружаем данные о пользователе из БД по имени пользователя
@@ -380,6 +379,8 @@ abstract class Defender_Core {
 				}
 			}
 		}
+ 		//if (!is_object($user)) // Если пользователь не найден, то удаляем сессию
+ 			$this->get_session()->destroy();
 		$this->load_acl(); // Загружаем информацию о правах доступа для текущего пользователя
 		return FALSE; // Не удалось найти пользователя, возвращаем FALSE
 	}
@@ -404,7 +405,7 @@ abstract class Defender_Core {
 		if (isset($this->_config['uattr']['logins'])) // Если в конфигурации определен параметр число входов пользователя, то увеличиваем число попыток входа пользователя
 			$user->{$this->_config['uattr']['logins']}++;
 		$user->save(); // Сохраняем настройки
-		$this->get_session()->regenerate(); // Генерируем новую сессию
+		$this->get_session()->restart(); // Генерируем новую сессию
 		// Запоминаем в сессии объект пользователя или имя пользователя
 		if ($this->_config['session']['store_user'])
 			$this->get_session()->set($this->_config['session']['key'], $user);
