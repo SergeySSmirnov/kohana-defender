@@ -323,7 +323,8 @@ abstract class Defender_Core {
 	 * @return boolean Признак успешного выхода из системы.
 	 */
 	public function logout($destroy = FALSE) {
-		if (!empty(Cookie::get($this->_config['cookie']['key']))) { // Если есть запись в cookie, то удаляем ее
+		$_temp = Cookie::get($this->_config['cookie']['key']);
+		if (!empty($_temp)) { // Если есть запись в cookie, то удаляем ее
 			Cookie::delete($this->_config['cookie']['key']);
 		}
 		if ($destroy === TRUE) { // Если необходимо, то удаляем сессию
