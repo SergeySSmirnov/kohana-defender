@@ -2,7 +2,7 @@
 
 /**
  * Класс модели, предоставляющий доступ к данным пользователей.
- *  
+ * @package Defender
  * @category Model
  * @copyright  (c) 2010-14 RUSproj, Sergey S. Smirnov
  * @author Сергей С. Смирнов

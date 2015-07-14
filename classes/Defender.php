@@ -2,8 +2,7 @@
  
 /**
  * Представляет класс модуля пользовательской аутентификации и авторизации.
- * 
- * @category Controller
+ * @package Defender
  * @author Сергей С. Смирнов
  * @copyright  (c) 2010-14 RUSproj, Sergey S. Smirnov
  */

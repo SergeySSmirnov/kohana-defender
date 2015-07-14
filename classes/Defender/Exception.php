@@ -2,8 +2,7 @@
 
 /**
  * Класс, представляющий исключение, генерируемое модулем Defender.
- *
- * @category Control
+ * @package Defender
  * @copyright  (c) 2010-14 RUSproj, Sergey S. Smirnov
  * @author Сергей С. Смирнов
  */
