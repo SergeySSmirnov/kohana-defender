@@ -68,7 +68,6 @@ return array(
 	 */
 	'user_model' => 'user', // Пользователи
 	'role_model' => 'role', // Роли
-	'userrole_model' => 'userrole', // Роли пользователей
 				
 	/**
 	 * Определяем соответствие столбцам таблицы.
@@ -88,10 +87,6 @@ return array(
 		'id' => 'id', // id роли 
 		'rolename' => 'rolename', // Название роли
 		'roleact' => 'roleact', // Действия, допустимые для роли
-	),
-	'urattr' => array( // Таблица роли пользователей
-		'uid' => 'uid', // id пользователя
-		'rid' => 'rid', // id роли
 	),
 		
 	/**
