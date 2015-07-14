@@ -41,6 +41,10 @@ abstract class Defender_Core {
 	 */
 	protected $_user = NULL;
 	/**
+	 * @var array Массив названий ролей текущего пользователя.
+	 */
+	protected $_roles = array();
+	/**
 	 * @var array Массив правил, определяющих разрешения для текущего пользователя.
 	 */
 	protected $_rules = array();
@@ -358,6 +362,14 @@ abstract class Defender_Core {
 		}
 	}
 	/**
+	 * Осуществляет проверку наличия у пользователя указанной роли. Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
+	 * @param string $role Название роли, которое необходимо проверить.
+	 * @return bool Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
+	 */
+	public function has_role($role) {
+		return array_search($role, $this->_roles) !== FALSE ? TRUE: FALSE;
+	}
+	/**
 	 * Возвращает объект пользователя, сохраненный в сессии (если необходимо). Если объект не найден, то вернет FALSE.
 	 * @return  object / FALSE
 	 */
@@ -496,6 +508,7 @@ abstract class Defender_Core {
 			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 		}
 		foreach ($_model as $rule) {
+			$this->_roles[] = $rule->rolNazv;
 			$this->_rules = array_merge($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
 		}
 	}
