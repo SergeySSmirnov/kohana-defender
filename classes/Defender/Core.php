@@ -361,12 +361,27 @@ abstract class Defender_Core {
 		return FALSE; // Если доступ не разрешен, значит он запрещён
 	}
 	/**
-	 * Осуществляет проверку наличия у пользователя указанной роли. Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
-	 * @param string $role Название роли, которое необходимо проверить.
-	 * @return bool Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
+	 * Осуществляет проверку наличия у пользователя указанной роли или кода роли. Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
+	 * @param string $role Название или код роли, которое необходимо проверить.
+	 * @return bool Вернет true - если у пользователя присутствует указанная роль или её код, false - в противном случае.
 	 */
 	public function has_role($role) {
 		return array_search($role, $this->_roles) !== FALSE ? TRUE: FALSE;
+	}
+	/**
+	 * Осуществляет проверку наличия у пользователя указанных ролей или кодов роли. Вернет true - если у пользователя присутствуют указанные роли или её коды, false - в противном случае.
+	 * @param array $roles Массив названий и/или кодов ролей, которые необходимо проверить. Если будет задан не массив, то метод вернёт false.
+	 * @param bool $oneOf Признак необходимости проверить присутствие у пользователя любой одной роли из списка.
+	 * @return bool Вернет true - если у пользователя присутствует указанные роли или её коды, false - в противном случае.
+	 */
+	public function has_roles($roles, $oneOf) {
+		if (!is_array($roles))
+			return false;
+		$_result = array_intersect($roles, $this->_roles);
+		if ($oneOf === TRUE)
+			return (count($_result) > 0) ? TRUE : FALSE;
+		else
+			return (count($_result) == count($roles)) ? TRUE : FALSE;
 	}
 	/**
 	 * Возвращает объект пользователя, сохраненный в сессии (если необходимо). Если объект не найден, то вернет FALSE.
@@ -499,7 +514,7 @@ abstract class Defender_Core {
 		$_model = NULL;
 		if ($_driver === 'ORM') { // Если используется движок ORM, то возвращаем информацию, загруженную из ORM модели
 			if (is_object($user)) {
-				$_model = $user->role->find_all();
+				$_model = $user->role->find_all(); // Загружаем все записи в соответствии со связью, описанной в модели пользователя
 			} else {
 				$_model = ORM::factory(ucfirst($this->_config['role_model']))->where($this->_config['rattr']['rolename'], '=', 'Guest')->find_all();
 			}
@@ -507,7 +522,8 @@ abstract class Defender_Core {
 			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 		}
 		foreach ($_model as $rule) {
-			$this->_roles[] = $rule->rolNazv;
+			$this->_roles[] = $rule->{$this->_config['rattr']['rolename']}; 
+			$this->_roles[] = $rule->{$this->_config['rattr']['rolecode']};
 			$this->_rules = array_merge($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
 		}
 	}

@@ -86,6 +86,7 @@ return array(
 	'rattr' => array( // Таблица роли
 		'id' => 'id', // id роли 
 		'rolename' => 'rolename', // Название роли
+		'rolecode' => 'rolecode', // Код роли
 		'roleact' => 'roleact', // Действия, допустимые для роли
 	),
 		
