@@ -16,6 +16,27 @@
 abstract class Defender_Core {
 
 	/**
+	 * Возвращает статический экземпляр класса.
+	 * @param string $name Имя создаваемого экземпляра класса.
+	 * @param string $confn Имя конфигурационного файла.
+	 * @param Config $config Конфигурационные данные модуля.
+	 * @return Defender Созданный экземпляр класса.
+	 * @throws Kohana_Exception Генерируется в том случае, если сервер не поддерживает Bcrypt.
+	 */
+	public static function instance($name = 'def', $confn = 'defender', $config = NULL) {
+		if (CRYPT_BLOWFISH !== 1) { // Если сервер не поддерживает bcrypt, то генерируем исключение
+			throw new Defender_Exception('Данный сервер не поддерживает возможность хэширования bcrypt.');
+		}
+		if (!isset(self::$_instances[$name])) { // Если не создан экземпляр класса
+			$_config = Arr::merge(Kohana::$config->load($confn)->as_array(), $config); // Загружаем конфигурационные данные
+			$class = ucfirst($confn);
+			self::$_instances[$name] = new $class($name, $_config); // Создаем экземпляр класса и помещаем в массив экземпляров
+		}
+		return self::$_instances[$name]; // Возвращаем созданный экземпляр
+	}
+	
+	
+	/**
 	 * @ string Символы, разрешенные для использования в "соли" для cookies.
 	 */
 	const SALT = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -49,146 +70,6 @@ abstract class Defender_Core {
 	 */
 	protected $_rules = array();
 
-	/**
-	 * Возвращает статический экземпляр класса.
-	 * @param string $name Имя создаваемого экземпляра класса.
-	 * @param string $confn Имя конфигурационного файла.
-	 * @param Config $config Конфигурационные данные модуля.
-	 * @return Defender Созданный экземпляр класса.
-	 * @throws Kohana_Exception Генерируется в том случае, если сервер не поддерживает Bcrypt.
-	 */
-	public static function instance($name = 'def', $confn = 'defender', $config = NULL) {
-		if (CRYPT_BLOWFISH !== 1) { // Если сервер не поддерживает bcrypt, то генерируем исключение
-			throw new Defender_Exception('Данный сервер не поддерживает возможность хэширования bcrypt.');
-		}
-		if (!isset(self::$_instances[$name])) { // Если не создан экземпляр класса
-			$_config = Arr::merge(Kohana::$config->load($confn)->as_array(), $config); // Загружаем конфигурационные данные
-			$class = ucfirst($confn);
-			self::$_instances[$name] = new $class($name, $_config); // Создаем экземпляр класса и помещаем в массив экземпляров
-		}
-		return self::$_instances[$name]; // Возвращаем созданный экземпляр
-	}
-	/**
-	 * Добавляет новое правило, или изменяет существующую роль и одно правило данной роли.
-	 * Вместо указания в $control и $action конкретных значений можно использовать '*' - это обозначает полный доступ либо ко всем контролам, либо ко всем действиям внутри контрола.
-	 * Например:
-	 * add_rule('Guest', '*', '*'); // Полный доступ роли Guest ко всем контролам и действиям, описанным в контролах.
-	 * add_rule('Guest', 'example', '*'); // Полный доступ роли Guest ко всем действиям, описанным в контроле example.
-	 * add_rule('Guest', 'example', 'test'); // Доступ роли Guest к действию test, описанному в контроле example.
-	 * @param string $rolename Имя новой или редактируемой роли.
-	 * @param string $control Контрол, к котрому разрешается доступ для данной роли.
-	 * @param string $action Действие контрола, к которому разрешается доступ для данной роли.
-	 * @param array $config Конфигурационные данные модуля.
-	 * @param string $confn Имя конфигурационного файла.
-	 */
-	public static function add_rule($rolename, $control, $action, $config = NULL, $confn = 'defender') {
-		Defender_Core::add_rules($rolename, array($control => array($action)), $config, $confn);
-	}
-	/**
-	 * Добавляет набор новых правил, или изменяет существующую роль и правила данной роли.
-	 * Например:
-	 * add_rule('Guest', 'array('example'=>array('test', 'test2'))'); // Доступ роли Guest к действиям test и test2, описанным в контроле example.
-	 * add_rule('Guest', 'array('example'=>array('*'))'); // Полный доступ роли Guest ко всем действиям, описанным в контроле example.
-	 * add_rule('Guest', 'array('*'=>array('*'))'); // Полный доступ роли Guest ко всем контролам и действиям, описанным в контролах.
-	 * @param string $rolename Имя новой или редактируемой роли.
-	 * @param array $arules Массив правил доступа роли.
-	 * @param array $config Конфигурационные данные модуля.
-	 * @param string $confn Имя конфигурационного файла.
-	 * @throws Kohana_Exception Исключение генерируется в случае ошибки работы одного из компонентов фреймворка, например, при загрузке конфигурации. 
-	 * @throws ORM_Validation_Exception Исключение генерируется в случае неверных данных, которые не соответствуют правилам проверки, описанным в модели.
-	 */
-	public static function add_rules($rolename, $arules, $config = NULL, $confn = 'defender') {
-		if (is_null($config)) { // Загружаем конфигурационный файл, если он не определен
-			$_config = Kohana::$config->load($confn);
-		}
-		$_driver = isset($_config['driver']) ? $_config['driver'] : 'ORM'; // Загружаем из конфигурации имя движка для доступа к БД
-		$_model = NULL;
-		if ($_driver === 'ORM') { // Если используется движок ORM, то возвращаем информацию, загруженную из ORM модели
-			$_model = ORM::factory(ucfirst($_config['role_model']), array($_config['rattr']['rolename'] => $rolename));
-		} else { // Если не определен движок, то генерируем исключение
-			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
-		}
-		if (array_key_exists('*', $arules)) { // Если разрешен полный доступ ко всем контролам и действиям, то формируем соответствующее правило
-			$_rules = array('*' => array('*'));
-		} else { // Если разрешен частичный доступ
-			if ($_model->loaded() === TRUE) { // Если данные были загружены из БД
-				$_rules = unserialize($_model->{$_config['rattr']['roleact']}); // Считываем текущие правила
-				if (array_key_exists('*', $_rules)) { // Если разрешен полный доступ ко всем контролам и действиям, то формируем соответствующее правило
-					$_rules = array('*' => array('*'));
-				} else { // Если доступ к контролам ограничен
-					foreach ($arules as $_control => $_crules) { // Пробегаемся по всем контролам
-						if (array_key_exists($_control, $_rules)) { // Если контрол существует в загруженных из БД правилах
-							if (in_array('*', $_rules[$_control]) || in_array('*', $_crules)) { // Если существует правило доступа ко всем действияем контрола, то добавляем его и переходим к следующему шагу цикла
-								$_rules[$_control] = array('*');
-								continue;
-							} else { // Если права доступа к контролу ограничены
-								foreach ($_crules as $id => $action) { // Пробегаемся по всем действиям контрола
-									if (in_array($action, $_rules[$_control], TRUE)) { // Если значение уже присутствует, то ничего не делаем
-										continue;
-									} else { // Иначе добавляем новое действие в контрол
-										$_rules[$_control][] = $action;
-									}
-								}
-							}
-						} else { // Если контрол не существует в загруженных из БД правилах
-							$_rules[$_control] = (in_array('*', $_crules)) ? array('*') : $_crules; // Либо формируем правило доступа ко всем действиям, либо оставлем все так, как есть
-						}
-					}
-				}
-			} else { // Если данные не были загружены из БД
-				$_model->{$_config['rattr']['rolename']} = $rolename; // Имя правила
-				foreach ($arules as $_control => $_crules) { // Пробегаемся по всем контролам
-					$_rules[$_control] = (in_array('*', $_crules)) ? array('*') : $_crules; // Либо формируем правило доступа ко всем действиям, либо оставлем все так, как есть
-				}
-			}
-		}
-		$_model->{$_config['rattr']['roleact']} = serialize($_rules); // Сериализуем правила
-		$_model->save(); // Если данные корректны, то сохраняем их (валидация данных происходит перед операцией сохранения данных)
-	}
-	/**
-	 * Удаляет указанное правило или роль вцелом.
-	 * Вместо указания в $control и $action конкретных значений можно использовать '*' - это обозначает либо удаление роли, либо удаление ко всем действиям конкретного контрола.
-	 * Например:
-	 * delete_rule('Guest', '*', '*') или delete_rule('Guest', '*') или delete_rule('Guest') // Удаление роли Guest.
-	 * delete_rule('Guest', 'example', '*') или delete_rule('Guest', 'example') // Удаление доступа роли Guest ко всем действиям, описанным в контроле example.
-	 * delete_rule('Guest', 'example', 'test'); // Удаление доступа роли Guest к действию test, описанному в контроле example.
-	 * @param string $rolename Имя новой или редактируемой роли.
-	 * @param string $control Контрол, к котрому разрешается доступ для данной роли.
-	 * @param string $action Действие контрола, к которому разрешается доступ для данной роли.
-	 * @param array $config Конфигурационные данные модуля.
-	 * @param string $confn Имя конфигурационного файла.
-	 * @throws Kohana_Exception Исключение генерируется в случае ошибки работы одного из компонентов фреймворка, например, при загрузке конфигурации. 
-	 * @throws ORM_Validation_Exception Исключение генерируется в случае неверных данных, которые не соответствуют правилам проверки, описанным в модели.
-	 */
-	public static function delete_rule($rolename, $control = '*', $action = '*', $config = NULL, $confn = 'defender') {
-		if (is_null($config)) { // Загружаем конфигурационный файл, если он не определен
-			$_config = Kohana::$config->load($confn);
-		}
-		$_driver = isset($_config['driver']) ? $_config['driver'] : 'ORM'; // Загружаем из конфигурации имя движка для доступа к БД
-		$_model = NULL;
-		if ($_driver === 'ORM') { // Если используется движок ORM, то возвращаем информацию, загруженную из ORM модели
-			$_model = ORM::factory(ucfirst($_config['role_model']), array($_config['rattr']['rolename'] => $rolename));
-		} else { // Если не определен движок, то генерируем исключение
-			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
-		}
-		if ($_model->loaded() === FALSE) { // Если данные не были загружены, то завершаем метод
-			return;
-		}
-		if ($control === '*') { // Если необходимо удалить запись вцелом, то удаляем и завершаем метод
-			$_model->delete();
-			return;
-		}
-		$_rules = unserialize($_model->{$_config['rattr']['roleact']}); // Считываем текущие правила
-		if ($action === '*') { // Если необходимо удалить все действия
-			unset($_rules[$control]);
-		} else {
-			$_rules[$control] = array_flip($_rules[$control]); // Меняем местами ключи и значения
-			unset($_rules[$control][$action]); // Удаляем элемент массива
-			$_rules[$control] = array_flip($_rules[$control]); // Меняем местами ключи и значения
-		}
-		$_model->{$_config['rattr']['roleact']} = serialize($_rules); // Сериализуем правила
-		$_model->save(); // Если данные корректны, то сохраняем их
-	} 
 	
 	/**
 	 * Конструктор класса.
@@ -288,7 +169,7 @@ abstract class Defender_Core {
 						if ($attempt > $attempts) { // Если номер попытки входа больше чем разрешенное число попыток
 							if ((strtotime($last) + $time) > time()) { // Если время блокировки очередно попытки входа не закончилось, то генерируем исключение
 								$this->logging('auth', 'filed', 'Пользователь :user исчерпал лимит попыток входа в систему. Попытка: :attempt, Время блокировки: :time.', array(':user' => $username, ':attempt' => $attempt, ':time' => $time));
-								throw new Defender_Exception('Вы исчерпали лимит попыток доступа. Попытайтесь позже через :time секунд.', array(':time'=>$time));
+								throw new Defender_Exception('Вы исчерпали лимит попыток доступа. Попытайтесь позже через '.$time.' секунд.');
 							} else { // Иначе переходим к следующей записи соответствия
 								break;
 							} 
