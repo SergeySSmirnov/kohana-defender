@@ -392,7 +392,7 @@ abstract class Defender_Core {
 			if (is_object($user)) {
 				$_model = $user->role->find_all(); // Загружаем все записи в соответствии со связью, описанной в модели пользователя
 			} else {
-				$_model = ORM::factory(ucfirst($this->_config['role_model']))->where($this->_config['rattr']['rolename'], '=', 'Guest')->find_all();
+				$_model = ORM::factory(ucfirst($this->_config['role_model']))->where($this->_config['rattr']['rolecode'], '=', 'guest')->find_all();
 			}
 		} else { // Если не определен движок, то генерируем исключение
 			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');

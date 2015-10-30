@@ -113,6 +113,7 @@ return array(
 			CREATE TABLE roles (
 			   rid int UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Идентификатор записи роли.',
 			   name varchar(255) NOT NULL COMMENT 'Название роли.',
+			   code varchar(45) NOT NULL COMMENT 'Код роли',
 			   role longtext NOT NULL COMMENT 'Действия, допустимые для роли.',
 			   PRIMARY KEY (rid),
 			   KEY ROLE_NAME (name)
