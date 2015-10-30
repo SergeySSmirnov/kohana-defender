@@ -203,20 +203,15 @@ abstract class Defender_Core {
 	}
 	/**
 	 * Осуществляет завершение сеанса пользователя и удаление данных сессии и cookie.
-	 * @param boolean $destroy Признак необходимости польностью удалить сессию.
 	 * @return boolean Признак успешного выхода из системы.
 	 */
-	public function logout($destroy = FALSE) {
+	public function logout() {
 		$_temp = Cookie::get($this->_config['cookie']['key']);
 		if (!empty($_temp)) { // Если есть запись в cookie, то удаляем ее
 			Cookie::delete($this->_config['cookie']['key']);
 		}
-		if ($destroy === TRUE) { // Если необходимо, то удаляем сессию
-			$this->get_session()->destroy();
-		} else { // Иначе удаляем сессию и генерируем новую запись сессии
-			$this->get_session()->delete($this->_config['session']['key']);
-			$this->get_session()->regenerate();
-		}
+		$this->get_session()->destroy();
+		$this->get_session()->regenerate();
 		$this->logging('auth', 'success', 'Пользователь :user вышел из системы.', array(':user' => $this->_user->{$this->_config['uattr']['username']}));
 		unset($this->_user); // Удаляем объект, соответствующий пользователю
 		return !$this->logged_in(); // Возвращаем признак успешного выхода из системы
