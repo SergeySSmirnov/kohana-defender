@@ -400,7 +400,7 @@ abstract class Defender_Core {
 		foreach ($_model as $rule) {
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolename']}; 
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolecode']};
-			$this->_rules = array_merge($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
+			$this->_rules = array_merge_recursive($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
 		}
 	}
 	/**
