@@ -225,6 +225,8 @@ abstract class Defender_Core {
 	public function allowed($control = '', $action = '') {
 		$control = strtolower($control);
 		$action = strtolower($action);
+		if (empty($this->_rules))
+			return FALSE;
 		if (array_key_exists('*', $this->_rules)) { // Если указан подстановочный символ, значит у пользователя неограниченный доступ ко всем контролам и действиям
 			return  TRUE;
 		} else if (array_key_exists($control, $this->_rules)) {
@@ -400,7 +402,10 @@ abstract class Defender_Core {
 		foreach ($_model as $rule) {
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolename']}; 
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolecode']};
-			$this->_rules = array_merge($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
+			if (!empty($this->_rules))
+				$this->_rules = array_merge($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
+			else
+				$this->_rules = unserialize($rule->{$this->_config['rattr']['roleact']});
 		}
 	}
 	/**
