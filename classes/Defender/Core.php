@@ -239,9 +239,9 @@ abstract class Defender_Core {
 		return FALSE; // Если доступ не разрешен, значит он запрещён
 	}
 	/**
-	 * Осуществляет проверку наличия у пользователя указанной роли или кода роли. Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
-	 * @param string $role Название или код роли, которое необходимо проверить.
-	 * @return bool Вернет true - если у пользователя присутствует указанная роль или её код, false - в противном случае.
+	 * Осуществляет проверку наличия у пользователя указанному названию, коду или идентификатору роли. Вернет true - если у пользователя присутствует указанная роль, false - в противном случае.
+	 * @param string $role Название, код или идентификатор роли, которое необходимо проверить.
+	 * @return bool Вернет true - если у пользователя присутствует указанное название, код или идентификатор роли, false - в противном случае.
 	 */
 	public function has_role($role) {
 		return array_search($role, $this->_roles) !== FALSE ? TRUE: FALSE;
@@ -400,6 +400,7 @@ abstract class Defender_Core {
 			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 		}
 		foreach ($_model as $rule) {
+			$this->_roles[] = $rule->{$this->_config['rattr']['id']}; 
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolename']}; 
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolecode']};
 			if (!empty($this->_rules))
