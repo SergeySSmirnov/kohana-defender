@@ -37,7 +37,96 @@ abstract class Defender_Core {
 	
 	
 	/**
-	 * @ string Символы, разрешенные для использования в "соли" для cookies.
+	 * Осуществляет добавление роли(ей) для указанного пользователя. 
+	 * @param int|string|ORM $user Идентификатор или имя пользователя.
+	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
+	 * @param string $confn Имя используемой конфигурации.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 */
+	public static function addRoleToUser($user, $role, $confn = 'defender') {
+		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
+		$_userModel = self::getUserModel($user, $_config);
+		$_userRoles = $_userModel->role->find_all()->as_array($_config['rattr']['id']);
+		foreach ((array)$role as $_r) {
+			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
+			if(!array_key_exists($_roleModelID, $_userRoles))
+				$_userModel->add('role', array($_roleModelID));
+		}
+	}
+	/**
+	 * Осуществляет удаление роли(ей) для указанного пользователя. 
+	 * @param int|string $user Идентификатор или имя пользователя.
+	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
+	 * @param string $confn Имя используемой конфигурации.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 */
+	public static function removeRoleToUser($user, $role, $confn = 'defender') {
+		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
+		$_userModel = self::getUserModel($user, $_config);
+		$_userRoles = $_userModel->role->find_all()->as_array($_config['rattr']['id']);
+		foreach ((array)$role as $_r) {
+			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
+			if(array_key_exists($_roleModelID, $_userRoles))
+				$_userModel->remove('role', array($_roleModelID));
+		}
+	}
+	
+	
+	/**
+	 * Возвращает модель данных указанного пользователя.
+	 * @param int|string|ORM $user Идентификатор или имя пользователя.
+	 * @param Config $config Конфигурационные данные защитника.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 * @return NULL|ORM
+	 */
+	protected static function getUserModel($user, $config) {
+		$_driver = isset($config['driver']) ? $config['driver'] : 'ORM'; // Загружаем из конфигурации движок для доступа к БД
+		$_model = NULL;
+		if ($user instanceof $_driver) {
+			return $user;
+		} else {
+			switch ($_driver) {
+				case 'ORM':
+					$_model = ORM::factory(ucfirst($config['user_model']), (is_string($user) ? array($config['uattr']['username'] => $user) : $user)); // В зависимости от типа данных, представленных в $user ищем по имени или ID пользователя
+					break;
+				default:
+					throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+			}
+		}
+		if ($_model->loaded() === TRUE)
+			return $_model;
+		else
+			throw new Defender_Exception('Указанная запись пользователя не найдена.');
+}
+	/**
+	 * Возвращает модель данных указанной роли.
+	 * @param int|string|ORM $role Идентификатор или код роли.
+	 * @param Config $config Конфигурационные данные защитника.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 * @return NULL|ORM
+	 */
+	protected static function getRoleModel($role, $config) {
+		$_driver = isset($config['driver']) ? $config['driver'] : 'ORM'; // Загружаем из конфигурации движок для доступа к БД
+		$_result = NULL;
+		if ($role instanceof $_driver)
+			return $role;
+		else
+			switch ($_driver) {
+				case 'ORM':
+					$_result = ORM::factory(ucfirst($config['role_model']), (is_string($role) ? array($config['rattr']['rolecode'] => $role) : $role)); // В зависимости от типа данных, представленных в $user ищем по имени или ID пользователя
+					break;
+				default:
+					throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+			}
+		if ($_result->loaded() === TRUE)
+			return $_result;
+		else
+			throw new Defender_Exception('Указанная запись пользователя не найдена.');
+	}
+	
+	
+	/**
+	 * @var string Символы, разрешенные для использования в "соли" для cookies.
 	 */
 	const SALT = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
@@ -150,7 +239,7 @@ abstract class Defender_Core {
 			}
 			$user = is_object($username) // Если имя пользователя представлено объектом, то оставляем его, в противном случае загружаем объект из БД
 				? $username
-				: $this->load_user($username);
+				: self::getUserModel($username, $this->_config);
 			if ($user->loaded() === FALSE) { // Если информацию о пользователе не удалось загрузить, генерируем исключение
 				$this->logging('auth', 'filed', 'Невозможно загрузить информацию о пользователе :user.', array(':user' => $username));
 				throw new Defender_Exception('Вы исчерпали лимит попыток доступа.');
@@ -272,7 +361,7 @@ abstract class Defender_Core {
 				$this->logout(TRUE); // Завершаем сеанс пользователя и очищаем сессию и cookies
 				return FALSE; // Возвращаем FALSE (пользователь не найден)
 			}
-			$user = $this->load_user($user); // Загружаем информацию о пользователе из БД
+			$user = self::getUserModel($user, $this->_config); // Загружаем информацию о пользователе из БД
 			if ($user->loaded() === TRUE) { // Если объект пользователя загружен
 				$this->load_acl($user); // Загружаем информацию о правах доступа для текущего пользователя
 				return $user; // Возвращаем информацию о пользователе
@@ -292,7 +381,7 @@ abstract class Defender_Core {
 			if (!empty($token)) { // Если данные из cookie были загружены
 				list($hash, $username) = explode('.', $token, 2); // Инициализируем переменные хэш и имя пользователя массивом из двух подстрок, извлеченных $token
 				if ((strlen($hash) === 32) && !empty($username)) { // Если длина хэша корректна, и имя пользователя определено
-					$user = $this->load_user($username); // Загружаем данные о пользователе из БД по имени пользователя
+					$user = self::getUserModel($username, $this->_config); // Загружаем данные о пользователе из БД по имени пользователя
 					if (($user->loaded() === TRUE) AND ($this->check($hash, $user->{$this->_config['uattr']['token']}) === TRUE)) { // Если загружена информация о пользователе и хэш сессии совпадает с хэшем пароля
 						return $this->complete_login($user, TRUE); // Завершаем регистрацию пользователя (обновляем пользовательскую сессию) и возвращаем TRUE
 					}
@@ -367,21 +456,6 @@ abstract class Defender_Core {
 		$cost = sprintf('%02d', min(31, max($cost, 4))); // Применяем нулевой отступ мощности для нормализации диапазона 4-31
 		$salt = '$2a$'.$cost.'$'.$salt.'$'; // Создаем соль, подходящую для bcrypt 
 		return crypt($input, $salt); // Формируем хэш и возвращаем его
-	}
-	/**
-	 * Осуществляет загрузку информации об указанном пользователе из БД.
-	 * @param string $username Имя пользователя.
-	 * @return object Объект БД с данными, соответствующими пользователю.
-	 */
-	protected function load_user($username) {
-		$_driver = isset($this->_config['driver']) ? $this->_config['driver'] : 'ORM'; // Загружаем из конфигурации движок для доступа к БД
-		$model = NULL;
-		if ($_driver === 'ORM') { // Если используется движок ORM, то возвращаем информацию, загруженную из ORM модели
-			$model = ORM::factory(ucfirst($this->_config['user_model']), array( $this->_config['uattr']['username'] => $username));
-		} else { // Если не определен движок, то генерируем исключение
-			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
-		}
-		return $model;
 	}
 	/**
 	 * Осуществляет загрузку информации из БД о правах доступа для указанного пользователя.
