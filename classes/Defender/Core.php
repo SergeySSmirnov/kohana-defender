@@ -36,7 +36,7 @@ abstract class Defender_Core {
 	}
 	/**
 	 * Создаёт запись пользователя с указанными параметрами. Если пользователь с таким логином существует, то ему будут назначены лишь указанные права.
-	 * @param string $userName Имя пользователя, которого необходимо создать.
+	 * @param int|string|ORM $userName Имя пользователя, которого необходимо создать.
 	 * @param string $userPasswd Пароль создаваемого пользователя.
 	 * @param boolean $userActive Признак что пользователь должен иметь статус "Активен".
 	 * @param array $roles Список ролей, назначемых создаваемому пользователю.
@@ -48,11 +48,12 @@ abstract class Defender_Core {
 		$_userModel = self::getUserModel($userName, $_config); // Ищем такого пользователя
 		if ($_userModel->loaded() === FALSE) // Если пользователя не существует, то создаём его
 			try {
-				$_userModel->set($config['uattr']['username'], $userName)->set($config['uattr']['password'], $userPasswd)->set($config['uattr']['active'], $userActive)->create();
+				$_userModel->set($_config['uattr']['username'], $userName)->set($_config['uattr']['password'], $userPasswd)->set($_config['uattr']['active'], $userActive)->create();
 			} catch (Exception $_exc) {
 				throw new Defender_Exception('Не удалось создать запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
 			}
 		self::addRoleToUser($_userModel, $roles); // Назначаем пользователю права
+		return $_userModel; // Возвращаем модель пользователя
 	}
 	/**
 	 * Удаляет запись пользователя.
@@ -127,10 +128,7 @@ abstract class Defender_Core {
 					throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 			}
 		}
-		if ($_model->loaded() === TRUE)
-			return $_model;
-		else
-			throw new Defender_Exception('Указанная запись пользователя не найдена.');
+		return $_model;
 	}
 	/**
 	 * Возвращает модель данных указанной роли.
