@@ -34,11 +34,45 @@ abstract class Defender_Core {
 		}
 		return self::$_instances[$name]; // Возвращаем созданный экземпляр
 	}
-	
-	
+	/**
+	 * Создаёт запись пользователя с указанными параметрами. Если пользователь с таким логином существует, то ему будут назначены лишь указанные права.
+	 * @param string $userName Имя пользователя, которого необходимо создать.
+	 * @param string $userPasswd Пароль создаваемого пользователя.
+	 * @param boolean $userActive Признак что пользователь должен иметь статус "Активен".
+	 * @param array $roles Список ролей, назначемых создаваемому пользователю.
+	 * @param string $confn Имя конфигурационного файла, в котором хранятся настройки защитника.
+	 * @throws Defender_Exception Генерируется в случае возникновения ошибок при создании записи пользователя или назначении для него прав.
+	 */
+	public static function makeUser($userName, $userPasswd, $userActive = FALSE, $roles = array(), $confn = 'defender') {
+		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
+		$_userModel = self::getUserModel($userName, $_config); // Ищем такого пользователя
+		if ($_userModel->loaded() === FALSE) // Если пользователя не существует, то создаём его
+			try {
+				$_userModel->set($config['uattr']['username'], $userName)->set($config['uattr']['password'], $userPasswd)->set($config['uattr']['active'], $userActive)->create();
+			} catch (Exception $_exc) {
+				throw new Defender_Exception('Не удалось создать запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
+			}
+		self::addRoleToUser($_userModel, $roles); // Назначаем пользователю права
+	}
+	/**
+	 * Удаляет запись пользователя.
+	 * @param int|string|ORM $user Идентификатор, имя или модель пользователя.
+	 * @param string $confn Имя конфигурационного файла, в котором хранятся настройки защитника.
+	 * @throws Defender_Exception Генерируется в случае возникновения ошибок при создании записи пользователя или назначении для него прав.
+	 */
+	public static function deleteUser($user, $confn = 'defender') {
+		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
+		$_userModel = self::getUserModel($user, $_config); // Ищем пользователя
+		if ($_userModel->loaded() === TRUE) // Если пользователь существует, то удаляем его
+			try {
+				$_userModel->delete();
+			} catch (Exception $_exc) {
+				throw new Defender_Exception('Не удалось удалить запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
+			}
+	}
 	/**
 	 * Осуществляет добавление роли(ей) для указанного пользователя. 
-	 * @param int|string|ORM $user Идентификатор или имя пользователя.
+	 * @param int|string|ORM $user Идентификатор, имя или модель пользователя.
 	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
 	 * @param string $confn Имя используемой конфигурации.
 	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
@@ -50,7 +84,7 @@ abstract class Defender_Core {
 		foreach ((array)$role as $_r) {
 			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
 			if(!array_key_exists($_roleModelID, $_userRoles))
-				$_userModel->add('role', array($_roleModelID));
+				$_userModel->add('role', array($_roleModelID), TRUE);
 		}
 	}
 	/**
@@ -97,7 +131,7 @@ abstract class Defender_Core {
 			return $_model;
 		else
 			throw new Defender_Exception('Указанная запись пользователя не найдена.');
-}
+	}
 	/**
 	 * Возвращает модель данных указанной роли.
 	 * @param int|string|ORM $role Идентификатор или код роли.
