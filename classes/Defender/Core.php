@@ -81,7 +81,7 @@ abstract class Defender_Core {
 	public static function addRoleToUser($user, $role, $confn = 'defender') {
 		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
 		$_userModel = self::getUserModel($user, $_config);
-		$_userRoles = $_userModel->role->find_all()->as_array($_config['rattr']['id']);
+		$_userRoles = $_userModel->roles->find_all()->as_array($_config['rattr']['id']);
 		foreach ((array)$role as $_r) {
 			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
 			if(!array_key_exists($_roleModelID, $_userRoles))
@@ -98,7 +98,7 @@ abstract class Defender_Core {
 	public static function removeRoleToUser($user, $role, $confn = 'defender') {
 		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
 		$_userModel = self::getUserModel($user, $_config);
-		$_userRoles = $_userModel->role->find_all()->as_array($_config['rattr']['id']);
+		$_userRoles = $_userModel->rolse->find_all()->as_array($_config['rattr']['id']);
 		foreach ((array)$role as $_r) {
 			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
 			if(array_key_exists($_roleModelID, $_userRoles))
@@ -498,7 +498,7 @@ abstract class Defender_Core {
 		$_model = NULL;
 		if ($_driver === 'ORM') { // Если используется движок ORM, то возвращаем информацию, загруженную из ORM модели
 			if (is_object($user)) {
-				$_model = $user->role->find_all(); // Загружаем все записи в соответствии со связью, описанной в модели пользователя
+				$_model = $user->roles->find_all(); // Загружаем все записи в соответствии со связью, описанной в модели пользователя
 			} else {
 				$_model = ORM::factory(ucfirst($this->_config['role_model']))->where($this->_config['rattr']['rolecode'], '=', 'guest')->find_all();
 			}
