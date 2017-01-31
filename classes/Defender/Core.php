@@ -72,7 +72,7 @@ abstract class Defender_Core {
 			}
 	}
 	/**
-	 * Осуществляет добавление роли(ей) для указанного пользователя. 
+	 * Осуществляет добавление роли(ей) для указанного пользователя.
 	 * @param int|string|ORM $user Идентификатор, имя или модель пользователя.
 	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
 	 * @param string $confn Имя используемой конфигурации.
@@ -89,7 +89,7 @@ abstract class Defender_Core {
 		}
 	}
 	/**
-	 * Осуществляет удаление роли(ей) для указанного пользователя. 
+	 * Осуществляет удаление роли(ей) для указанного пользователя.
 	 * @param int|string $user Идентификатор или имя пользователя.
 	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
 	 * @param string $confn Имя используемой конфигурации.
@@ -105,8 +105,8 @@ abstract class Defender_Core {
 				$_userModel->remove('role', array($_roleModelID));
 		}
 	}
-	
-	
+
+
 	/**
 	 * Возвращает модель данных указанного пользователя.
 	 * @param int|string|ORM $user Идентификатор или имя пользователя.
@@ -155,8 +155,8 @@ abstract class Defender_Core {
 		else
 			throw new Defender_Exception('Указанная запись пользователя не найдена.');
 	}
-	
-	
+
+
 	/**
 	 * @var string Символы, разрешенные для использования в "соли" для cookies.
 	 */
@@ -191,7 +191,7 @@ abstract class Defender_Core {
 	 */
 	protected $_rules = array();
 
-	
+
 	/**
 	 * Конструктор класса.
 	 * Осуществляет загрузку сессии и конфигурации модуля для инициализации экземпляра класса.
@@ -217,8 +217,8 @@ abstract class Defender_Core {
 		if (!isset($this->_user)) { // Если пользователь не определен, то осуществляем его поиск в Сессии
 			$this->_user = $this->find_user(); // Загружаем пользователя
 		}
-		if (is_object($this->_user) AND ($this->_config['prevent_browser_cache'] === TRUE)) { // Если объект, соответствующий пользователю загружен и установлен флаг предотвращения использования кнопки Назад после завершения сеанса 
-			Response::factory()->headers('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'); // Запрещаем браузеру кэшировать данные для всех ответов, когда пользователь вошел в систему 
+		if (is_object($this->_user) AND ($this->_config['prevent_browser_cache'] === TRUE)) { // Если объект, соответствующий пользователю загружен и установлен флаг предотвращения использования кнопки Назад после завершения сеанса
+			Response::factory()->headers('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'); // Запрещаем браузеру кэшировать данные для всех ответов, когда пользователь вошел в систему
 			Response::factory()->headers('Pragma', 'no-cache');
 		}
 		return $this->_user; // Возвращаем объект текущего пользователя
@@ -276,9 +276,9 @@ abstract class Defender_Core {
 				$this->logging('auth', 'filed', 'Невозможно загрузить информацию о пользователе :user.', array(':user' => $username));
 				throw new Defender_Exception('Вы исчерпали лимит попыток доступа.');
 			}
-			if (isset($this->_config['uattr']['failed_attempts']) AND // Если в конфигурации определен параметр число безуспешных попыток входа 
+			if (isset($this->_config['uattr']['failed_attempts']) AND // Если в конфигурации определен параметр число безуспешных попыток входа
 				isset($this->_config['uattr']['last_attempt']) AND // и в конфигурации определен параметр дата и время последней попытки входа
-				(count(Arr::get($this->_config, 'rate_limits', array())) > 0)) // и в конфигурации определен массив соответствия числа попыток входа и времени блокировки (для защиты от подбора паролей)  
+				(count(Arr::get($this->_config, 'rate_limits', array())) > 0)) // и в конфигурации определен массив соответствия числа попыток входа и времени блокировки (для защиты от подбора паролей)
 			{
 				$attempt = 1 + (int)$user->{$this->_config['uattr']['failed_attempts']}; // Увеличиваем число безуспешных попыток входа
 				$last = isset($user->{$this->_config['uattr']['last_attempt']})
@@ -293,7 +293,7 @@ abstract class Defender_Core {
 								throw new Defender_Exception('Вы исчерпали лимит попыток доступа. Попытайтесь позже через '.$time.' секунд.');
 							} else { // Иначе переходим к следующей записи соответствия
 								break;
-							} 
+							}
 						}
 					}
 				}
@@ -338,7 +338,7 @@ abstract class Defender_Core {
 		return !$this->logged_in(); // Возвращаем признак успешного выхода из системы
 	}
 	/**
-	 * Осуществляет проверку возможности доступа текущего пользователя к указанному ресурсу. 
+	 * Осуществляет проверку возможности доступа текущего пользователя к указанному ресурсу.
 	 * @param string $control Контрол, к которому необходимо проверить возможность доступа.
 	 * @param string $action Действие внутри контрола, к которому необходимо проверить возможность доступа.
 	 * @return boolean
@@ -351,7 +351,7 @@ abstract class Defender_Core {
 		if (array_key_exists('*', $this->_rules)) { // Если указан подстановочный символ, значит у пользователя неограниченный доступ ко всем контролам и действиям
 			return  TRUE;
 		} else if (array_key_exists($control, $this->_rules)) {
-			if (in_array('*', $this->_rules[$control], TRUE)) { // Если указан полный доступам ко всем действияем внутри контрола 
+			if (in_array('*', $this->_rules[$control], TRUE)) { // Если указан полный доступам ко всем действияем внутри контрола
 				return TRUE;
 			} else if (in_array($action, $this->_rules[$control], TRUE)) { // Если разрешен доступ к контролу и действию данного контрола
 				return TRUE;
@@ -402,7 +402,7 @@ abstract class Defender_Core {
 			if (($user->loaded() === TRUE) && ($this->_config['session']['store_user'] === TRUE)) { // Если объект пользователя загружен и установлен флаг хранить данные пользователя в сессии
 				$this->load_acl($user); // Загружаем информацию о правах доступа для текущего пользователя
 				return $user; // Возвращаем информацию о пользователе
-			} else { // Если не удалось загрузить объект пользователя или он загружен некорректно 
+			} else { // Если не удалось загрузить объект пользователя или он загружен некорректно
 				$this->logout(TRUE); // Завершаем сеанс пользователя и очищаем сессию и cookies
 				return FALSE; // Возвращаем FALSE (пользователь не найден)
 			}
@@ -468,7 +468,7 @@ abstract class Defender_Core {
 		// Extract the iterations and salt from the hash
 		$cost = Arr::get($matches, 1);
 		$salt = Arr::get($matches, 2);
-		// return result	
+		// return result
 		return $this->hash($password, $salt, $cost) === $hash;
 	}
 	/**
@@ -486,7 +486,7 @@ abstract class Defender_Core {
 			$cost = $this->_config['cost'];
 		}
 		$cost = sprintf('%02d', min(31, max($cost, 4))); // Применяем нулевой отступ мощности для нормализации диапазона 4-31
-		$salt = '$2a$'.$cost.'$'.$salt.'$'; // Создаем соль, подходящую для bcrypt 
+		$salt = '$2a$'.$cost.'$'.$salt.'$'; // Создаем соль, подходящую для bcrypt
 		return crypt($input, $salt); // Формируем хэш и возвращаем его
 	}
 	/**
@@ -506,8 +506,8 @@ abstract class Defender_Core {
 			throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 		}
 		foreach ($_model as $rule) {
-			$this->_roles[] = $rule->{$this->_config['rattr']['id']}; 
-			$this->_roles[] = $rule->{$this->_config['rattr']['rolename']}; 
+			$this->_roles[] = $rule->{$this->_config['rattr']['id']};
+			$this->_roles[] = $rule->{$this->_config['rattr']['rolename']};
 			$this->_roles[] = $rule->{$this->_config['rattr']['rolecode']};
 			if (!empty($this->_rules))
 				$this->_rules = array_merge_recursive($this->_rules, unserialize($rule->{$this->_config['rattr']['roleact']}));
@@ -523,10 +523,11 @@ abstract class Defender_Core {
 	 * @param array $values Массив значений, которые будут заменены в тексте сообщения.
 	 */
 	protected function logging($type, $event, $message, array $values = NULL) {
-		$message = $message.' Client IP: '.Request::$client_ip.'.';
+		if (isset($values[':user']))
+			$values[':user'] .= ' (IP: '.Request::$client_ip.')';
 		if (isset($this->_config['logging'][$type][$event]) AND ($this->_config['logging'][$type][$event] !== FALSE)) {
 			Kohana::$log->add($this->_config['logging'][$type][$event], mb_strtoupper($type.'_'.$event).' = '.$message, $values, array('no_back_trace' => TRUE));
 		}
 	}
-	
+
 }
