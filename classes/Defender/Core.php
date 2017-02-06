@@ -98,7 +98,7 @@ abstract class Defender_Core {
 	public static function removeRoleToUser($user, $role, $confn = 'defender') {
 		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
 		$_userModel = self::getUserModel($user, $_config);
-		$_userRoles = $_userModel->rolse->find_all()->as_array($_config['rattr']['id']);
+		$_userRoles = $_userModel->roles->find_all()->as_array($_config['rattr']['id']);
 		foreach ((array)$role as $_r) {
 			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
 			if(array_key_exists($_roleModelID, $_userRoles))
