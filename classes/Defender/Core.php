@@ -105,8 +105,28 @@ abstract class Defender_Core {
 				$_userModel->remove('role', array($_roleModelID));
 		}
 	}
-
-
+	/**
+	 * Изменяет роль пользователя в зависимости от изменения указанных значений идентификатора пользователя.
+	 * @param int $perIDold Старый идентификатор пользователя.
+	 * @param int $perIDnew Новый идентификатор пользователя.
+	 * @param string $role Роль, которую необходимо назначить или удалить.
+	 */
+	public function changePersonRole($perIDold, $perIDnew, $role) {
+		$perIDnew = Text::checkNullOrTrim($perIDnew); // Удаляем все лишнее
+		if ($perIDnew === $perIDold) // Если данные не были изменены
+			return;
+		if (!empty($perIDold)) { // Если ранее была указана персона
+			$_userModel = ORM::factory('Configs_User', array('PER_perID'=>$perIDold)); // Ищем пользователя, соответствующего персоне
+			if ($_userModel->loaded() === TRUE) // Если пользователь существует, то лишаем его прав
+				Defender::removeRoleToUser($_userModel, 'zamzavkaf');
+		}
+		if (!empty($perIDnew)) { // Если указали новую персону
+			$_userModel = ORM::factory('Configs_User', array('PER_perID'=>$perIDnew)); // Ищем пользователя, соответствующего персоне
+			$_userModel = Defender::makeUser((($_userModel->loaded() === TRUE) ? $_userModel : 'PER'.$perIDnew), NULL, FALSE, array('guest', $role)); // Если пользователя не существует, то создаём его + независимо от этого назначаем пользователю права
+			if (empty($_userModel->PER_perID) || ($_userModel->PER_perID === 404)) // Если пользователь не связан с персоной (был только что создан), то связываем их
+				$_userModel->set('PER_perID', $perIDnew)->set('polDataSozd', Date::asDBtime('now'))->save(); // Если пользователь не связан с персоной (был только что создан), то связываем их
+		}
+	}
 	/**
 	 * Возвращает модель данных указанного пользователя.
 	 * @param int|string|ORM $user Идентификатор или имя пользователя.
