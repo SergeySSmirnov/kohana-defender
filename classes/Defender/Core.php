@@ -85,7 +85,7 @@ abstract class Defender_Core {
 		foreach ((array)$role as $_r) {
 			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
 			if(!array_key_exists($_roleModelID, $_userRoles))
-				$_userModel->add('role', array($_roleModelID), TRUE);
+				$_userModel->add('roles', array($_roleModelID), TRUE);
 		}
 	}
 	/**
@@ -102,7 +102,7 @@ abstract class Defender_Core {
 		foreach ((array)$role as $_r) {
 			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
 			if(array_key_exists($_roleModelID, $_userRoles))
-				$_userModel->remove('role', array($_roleModelID));
+				$_userModel->remove('roles', array($_roleModelID));
 		}
 	}
 	/**
@@ -111,14 +111,14 @@ abstract class Defender_Core {
 	 * @param int $perIDnew Новый идентификатор пользователя.
 	 * @param string $role Роль, которую необходимо назначить или удалить.
 	 */
-	public function changePersonRole($perIDold, $perIDnew, $role) {
+	public static function changePersonRole($perIDold, $perIDnew, $role) {
 		$perIDnew = Text::checkNullOrTrim($perIDnew); // Удаляем все лишнее
 		if ($perIDnew === $perIDold) // Если данные не были изменены
 			return;
 		if (!empty($perIDold)) { // Если ранее была указана персона
 			$_userModel = ORM::factory('Configs_User', array('PER_perID'=>$perIDold)); // Ищем пользователя, соответствующего персоне
 			if ($_userModel->loaded() === TRUE) // Если пользователь существует, то лишаем его прав
-				Defender::removeRoleToUser($_userModel, 'zamzavkaf');
+				Defender::removeRoleToUser($_userModel, $role);
 		}
 		if (!empty($perIDnew)) { // Если указали новую персону
 			$_userModel = ORM::factory('Configs_User', array('PER_perID'=>$perIDnew)); // Ищем пользователя, соответствующего персоне
