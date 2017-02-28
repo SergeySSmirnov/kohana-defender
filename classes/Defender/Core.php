@@ -55,10 +55,38 @@ abstract class Defender_Core {
 		return crypt($input, $salt); // Формируем хэш и возвращаем его
 	}
 	/**
+	 * Создаёт запись пользователя с указанными параметрами. Если пользователь с таким логином существует, то ему будут назначены лишь указанные права.
+	 * @param string $userName Имя пользователя, которого необходимо создать.
+	 * @param string $userPasswd Пароль создаваемого пользователя.
+	 * @param boolean $userActive Признак что пользователь должен иметь статус "Активен".
+	 * @param array $roles Список ролей, назначемых создаваемому пользователю.
+	 * @param string|Config_Group $config Конфигурационные данные модуля или название конфигурации.
+	 * @return Defender Объект безопасности (экземпляр класса Defender).
+	 * @throws Defender_Exception Генерируется в случае возникновения ошибок при создании записи пользователя или назначении для него прав.
+	 */
+	public static function create(string $userName, string $userPasswd, bool $userActive = FALSE, array $roles = array(), $config = 'defender') : Defender {
+		self::initConfig($config); // Инициализируем конфигурацию
+		if(!is_object(self::getUserModel($userName))) // Если пользователя не существует, то создаём его
+			try {
+				switch(self::$mDriver) {
+					case 'ORM':
+						ORM::factory(ucfirst(self::$config['user_model']))->set(self::$config['uattr']['username'], $userName)->set(self::$config['uattr']['password'], $userPasswd)->set(self::$config['uattr']['active'], $userActive)->create();
+						break;
+					default:
+						throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+				}
+			} catch(Exception $_exc) {
+				throw new Defender_Exception('Не удалось создать запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
+			}
+		$_defender = self::instance($userName);
+		$_defender->addRole($roles); // Назначаем пользователю права
+		return $_defender; // Возвращаем объект безопасности
+	}
+	/**
 	 * Возвращает объект безопасности (экземпляр класса Defender).
 	 * @param string $userName Имя пользователя для которого необходимо получить объект безопасности.
-	 * @param string|Config_Group $config Конфигурационные данные модуля или имя конфигурации.
-	 * @return Defender Объект безопасности (экземпляр класса Defender)
+	 * @param string|Config_Group $config Конфигурационные данные модуля или название конфигурации.
+	 * @return Defender Объект безопасности (экземпляр класса Defender).
 	 * @throws Defender_Exception Генерируется в случае ошибок инициализации объекта безопасности.
 	 * @throws Kohana_Exception Генерируется в том случае, если сервер не поддерживает Bcrypt.
 	 * @throws Session_Exception Генерируется в том случае, если время бездействия пользователя истекло.
@@ -81,13 +109,12 @@ abstract class Defender_Core {
 		self::$sess->set(self::$config['session']['key'].'_TIME', time() + self::$config['session']['expiration']); // Запоминаем время завершения сеанса пользователя по бездействию
 		return $_defender;
 	}
-
 	/**
 	 * Осуществляет попытку входа пользователя и возвращает объект безопасности (экземпляр класса Defender).
 	 * @param string $userName Имя пользователя.
 	 * @param string $password Пароль.
-	 * @param string|Config_Group $config Конфигурационные данные модуля или имя конфигурации.
-	 * @return Defender Объект безопасности (экземпляр класса Defender)
+	 * @param string|Config_Group $config Конфигурационные данные модуля или название конфигурации.
+	 * @return Defender Объект безопасности (экземпляр класса Defender).
 	 * @throws Defender_Exception Генерируется в случае ошибок инициализации объекта безопасности.
 	 * @throws Kohana_Exception Генерируется в том случае, если сервер не поддерживает Bcrypt.
 	 * @throws Session_Exception Генерируется в том случае, если время бездействия пользователя истекло.
@@ -136,12 +163,17 @@ abstract class Defender_Core {
 					$_user->{self::$config['uattr']['last_login']} = Date::formatted_time('now', 'Y-m-d H:i:s');
 				if(isset(self::$config['uattr']['logins'])) // Если в конфигурации определен параметр число входов пользователя, то увеличиваем число попыток входа пользователя
 					$_user->{self::$config['uattr']['logins']}++;
-				$_user->save(); // Сохраняем настройки
+				switch(self::$mDriver) {
+					case 'ORM':
+						$_user->save(); // Сохраняем настройки
+						break;
+					default:
+						throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+				}
 				self::$instance = new Defender($_user); // Формируем объект безопасности
-				self::$sess->regenerate(); // Генерируем новую сессию
-				self::$sess
-						->set(self::$config['session']['key'], $userName)
-						->set(self::$config['session']['key'].'_TIME', time() + self::$config['session']['expiration']); // Запоминаем в сессии имя пользователя и время завершения сеанса пользователя по бездействию
+				self::$sess = Session::instance(self::$config['session']['type'])->regenerate(); // Генерируем новую сессию
+				self::$sess->set(self::$config['session']['key'], $userName); // Запоминаем в сессии имя пользователя
+				self::$sess->set(self::$config['session']['key'].'_TIME', time() + self::$config['session']['expiration']); // Запоминаем в сессии время завершения сеанса пользователя по бездействию
 				return $_defender;
 			} else { // Если пароль неверный, то запоминаем число попыток входа и время последней попытки
 				if(isset(self::$config['uattr']['failed_attempts']))
@@ -172,20 +204,23 @@ abstract class Defender_Core {
 	 * @return Session
 	 */
 	public static function getSession() : Session {
-		return self::$sess; // Возвращаем текущую сессию
+		if (!isset(self::$sess))
+			self::$sess = Session::instance(self::$config['session']['type']);
+		return self::$sess;
 	}
 	/**
 	 * Возвращает имя учётной записи текущего пользователя.
 	 * @return string Имя учётной записи текущего пользователя.
 	 */
 	public static function getUserName() : string {
-		$_user = self::$instance->getUser();
+		$_user = isset(self::$instance) ? self::$instance->getUser() : null;
 		return (is_object($_user) ? $_user->{self::$config['uattr']['username']} : 'Guest');
 	}
 
+
 	/**
 	 * При необходимости осуществляет инициализацию конфигурации.
-	 * @param string|Config_Group $config Конфигурационные данные модуля или имя конфигурации.
+	 * @param string|Config_Group $config Конфигурационные данные модуля или название конфигурации.
 	 */
 	protected static function initConfig($config = 'defender') {
 		if (!isset(self::$config)) { // При необходимости загружаем файл с конфигурацией модуля
@@ -200,11 +235,10 @@ abstract class Defender_Core {
 	 * @return object|null
 	 */
 	protected static function getUserModel($user) {
-		self::initConfig(); // Инициализируем конфигурацию
 		$_model = null;
-		if($user instanceof self::$mDriver) {
+		if($user instanceof self::$mDriver)
 			return $user;
-		} else {
+		else
 			switch(self::$mDriver) {
 				case 'ORM':
 					$_model = ORM::factory(ucfirst(self::$config['user_model']), (is_string($user) ? array(self::$config['uattr']['username']=>$user) : $user)); // В зависимости от типа данных, представленных в $user ищем по имени или ID пользователя
@@ -214,7 +248,28 @@ abstract class Defender_Core {
 				default:
 					throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 			}
-		}
+		return $_model;
+	}
+	/**
+	 * Возвращает модель данных указанной роли.
+	 * @param int|string|object $role Идентификатор или код роли.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 * @return NULL|ORM
+	 */
+	protected static function getRoleModel($role) {
+		$_model = null;
+		if($role instanceof self::$mDriver)
+			return $role;
+		else
+			switch(self::$mDriver) {
+				case 'ORM':
+					$_model = ORM::factory(ucfirst($config['role_model']), (is_string($role) ? array($config['rattr']['rolecode']=>$role) : $role)); // В зависимости от типа данных, представленных в $role ищем по имени или ID роли
+					if (!$_model->loaded())
+						throw new Defender_Exception('Указанная запись роли не найдена.');
+					break;
+				default:
+					throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+			}
 		return $_model;
 	}
 	/**
@@ -245,10 +300,6 @@ abstract class Defender_Core {
 		// return result
 		return self::hash($password, $_salt, $_cost) === $hash;
 	}
-
-
-
-
 
 
 	/**
@@ -296,20 +347,6 @@ abstract class Defender_Core {
 				$this->rules = array_merge_recursive($this->rules, unserialize($_rule->{self::$config['rattr']['roleact']}));
 			else
 				$this->rules = unserialize($_rule->{self::$config['rattr']['roleact']});
-		}
-	}
-
-
-
-
-
-	/**
-	 * Восстанавливает состояние объекта после сериализации.
-	 */
-	public function __wakeup() {
-		if(!is_object($_user) || !self::$config['session']['store_user']) {
-			$this->logout();
-			$this->roles = $this->rules = array();
 		}
 	}
 	/**
@@ -395,137 +432,72 @@ abstract class Defender_Core {
 	public function checkPassword($password) {
 		return (is_object($this->user) && self::check($password, $this->user->{self::$config['uattr']['password']}));
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/**
-	 * Создаёт запись пользователя с указанными параметрами. Если пользователь с таким логином существует, то ему будут назначены лишь указанные права.
-	 * @param int|string|ORM $userName Имя пользователя, которого необходимо создать.
-	 * @param string $userPasswd Пароль создаваемого пользователя.
-	 * @param boolean $userActive Признак что пользователь должен иметь статус "Активен".
-	 * @param array $roles Список ролей, назначемых создаваемому пользователю.
-	 * @param string $confn Имя конфигурационного файла, в котором хранятся настройки защитника.
-	 * @throws Defender_Exception Генерируется в случае возникновения ошибок при создании записи пользователя или назначении для него прав.
-	 */
-	public static function makeUser($userName, $userPasswd, $userActive = FALSE, $roles = array(), $confn = 'defender') {
-		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
-		$_userModel = self::getUserModel($userName, $_config); // Ищем такого пользователя
-		if($_userModel->loaded() === FALSE) // Если пользователя не существует, то создаём его
-			try {
-				$_userModel->set($_config['uattr']['username'], $userName)->set($_config['uattr']['password'], $userPasswd)->set($_config['uattr']['active'], $userActive)->create();
-		} catch(Exception $_exc) {
-			throw new Defender_Exception('Не удалось создать запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
-		}
-		self::addRoleToUser($_userModel, $roles); // Назначаем пользователю права
-		return $_userModel; // Возвращаем модель пользователя
-	}
 	/**
 	 * Удаляет запись пользователя.
-	 * @param int|string|ORM $user Идентификатор, имя или модель пользователя.
-	 * @param string $confn Имя конфигурационного файла, в котором хранятся настройки защитника.
 	 * @throws Defender_Exception Генерируется в случае возникновения ошибок при создании записи пользователя или назначении для него прав.
 	 */
-	public static function deleteUser($user, $confn = 'defender') {
-		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
-		$_userModel = self::getUserModel($user, $_config); // Ищем пользователя
-		if($_userModel->loaded() === TRUE) // Если пользователь существует, то удаляем его
+	public function delete() {
+		if(is_object($this->user)) // Если пользователь существует, то пытаемся удалить его
 			try {
-				$_userModel->delete();
-		} catch(Exception $_exc) {
-			throw new Defender_Exception('Не удалось удалить запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
-		}
-	}
-	/**
-	 * Осуществляет добавление роли(ей) для указанного пользователя.
-	 * @param int|string|ORM $user Идентификатор, имя или модель пользователя.
-	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
-	 * @param string $confn Имя используемой конфигурации.
-	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
-	 */
-	public static function addRoleToUser($user, $role, $confn = 'defender') {
-		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
-		$_userModel = self::getUserModel($user, $_config);
-		$_userRoles = $_userModel->roles->find_all()->as_array($_config['rattr']['id']);
-		foreach((array)$role as $_r) {
-			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
-			if(!array_key_exists($_roleModelID, $_userRoles))
-				$_userModel->add('roles', array($_roleModelID), TRUE);
-		}
-	}
-	/**
-	 * Осуществляет удаление роли(ей) для указанного пользователя.
-	 * @param int|string $user Идентификатор или имя пользователя.
-	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
-	 * @param string $confn Имя используемой конфигурации.
-	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
-	 */
-	public static function removeRoleToUser($user, $role, $confn = 'defender') {
-		$_config = Kohana::$config->load($confn)->as_array(); // Загружаем конфигурационные данные
-		$_userModel = self::getUserModel($user, $_config);
-		$_userRoles = $_userModel->roles->find_all()->as_array($_config['rattr']['id']);
-		foreach((array)$role as $_r) {
-			$_roleModelID = self::getRoleModel($_r, $_config)->{$_config['rattr']['id']};
-			if(array_key_exists($_roleModelID, $_userRoles))
-				$_userModel->remove('roles', array($_roleModelID));
-		}
-	}
-	/**
-	 * Изменяет роль пользователя в зависимости от изменения указанных значений идентификатора пользователя.
-	 * @param int $perIDold Старый идентификатор пользователя.
-	 * @param int $perIDnew Новый идентификатор пользователя.
-	 * @param string $role Роль, которую необходимо назначить или удалить.
-	 */
-	public static function changePersonRole($perIDold, $perIDnew, $role) {
-		$perIDnew = Text::checkNullOrTrim($perIDnew); // Удаляем все лишнее
-		if($perIDnew === $perIDold) // Если данные не были изменены
-			return;
-			if(!empty($perIDold)) { // Если ранее была указана персона
-				$_userModel = ORM::factory('Configs_User', array('PER_perID'=>$perIDold)); // Ищем пользователя, соответствующего персоне
-				if($_userModel->loaded() === TRUE) // Если пользователь существует, то лишаем его прав
-					Defender::removeRoleToUser($_userModel, $role);
-			}
-			if(!empty($perIDnew)) { // Если указали новую персону
-				$_userModel = ORM::factory('Configs_User', array('PER_perID'=>$perIDnew)); // Ищем пользователя, соответствующего персоне
-				$_userModel = Defender::makeUser((($_userModel->loaded() === TRUE) ? $_userModel : 'PER' . $perIDnew), NULL, FALSE, array('guest', $role)); // Если пользователя не существует, то создаём его + независимо от этого назначаем пользователю права
-				if(empty($_userModel->PER_perID) || ($_userModel->PER_perID === 404)) // Если пользователь не связан с персоной (был только что создан), то связываем их
-					$_userModel->set('PER_perID', $perIDnew)->set('polDataSozd', Date::asDBtime('now'))->save(); // Если пользователь не связан с персоной (был только что создан), то связываем их
-			}
-	}
-
-	/**
-	 * Возвращает модель данных указанной роли.
-	 * @param int|string|ORM $role Идентификатор или код роли.
-	 * @param Config $config Конфигурационные данные защитника.
-	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
-	 * @return NULL|ORM
-	 */
-	protected static function getRoleModel($role, $config) {
-		$_driver = isset($config['driver']) ? $config['driver'] : 'ORM'; // Загружаем из конфигурации движок для доступа к БД
-		$_result = NULL;
-		if($role instanceof $_driver)
-			return $role;
-			else
-				switch($_driver) {
+				switch(self::$mDriver) {
 					case 'ORM':
-						$_result = ORM::factory(ucfirst($config['role_model']), (is_string($role) ? array($config['rattr']['rolecode']=>$role) : $role)); // В зависимости от типа данных, представленных в $user ищем по имени или ID пользователя
+						$this->user->delete();
 						break;
 					default:
 						throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+				}
+			} catch(Exception $_exc) {
+				throw new Defender_Exception('Не удалось удалить запись пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
 			}
-			if($_result->loaded() === TRUE)
-				return $_result;
-				else
-					throw new Defender_Exception('Указанная запись пользователя не найдена.');
+	}
+	/**
+	 * Осуществляет добавление роли(ей) для пользователя.
+	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 */
+	public function addRole($role) {
+		if(is_object($this->user)) // Если пользователь существует, то пытаемся удалить его
+			try {
+				switch(self::$mDriver) {
+					case 'ORM':
+						$_userRoles = $this->user->{self::$config['uattr']['roles']}->find_all()->as_array(self::$config['rattr']['id']);
+						foreach((array)$role as $_r) {
+							$_roleModelID = self::getRoleModel($_r)->{self::$config['rattr']['id']};
+							if(!array_key_exists($_roleModelID, $_userRoles))
+								$this->user->add(self::$config['uattr']['roles'], array($_roleModelID), TRUE);
+						}
+						break;
+					default:
+						throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+				}
+			} catch(Exception $_exc) {
+				throw new Defender_Exception('Не удалось добавить роль для пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
+			}
+	}
+	/**
+	 * Осуществляет удаление роли(ей) для пользователя.
+	 * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
+	 * @param string $confn Имя используемой конфигурации.
+	 * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+	 */
+	public function removeRole($role) {
+		if(is_object($this->user)) // Если пользователь существует, то пытаемся удалить его
+			try {
+				switch(self::$mDriver) {
+					case 'ORM':
+						$_userRoles = $this->user->{self::$config['uattr']['roles']}->find_all()->as_array(self::$config['rattr']['id']);
+						foreach((array)$role as $_r) {
+							$_roleModelID = self::getRoleModel($_r)->{self::$config['rattr']['id']};
+							if(!array_key_exists($_roleModelID, $_userRoles))
+								$this->user->remove(self::$config['uattr']['roles'], array($_roleModelID));
+						}
+						break;
+					default:
+						throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
+				}
+			} catch(Exception $_exc) {
+				throw new Defender_Exception('Не удалось удалить роль для пользователя. Причина: :error', array(':error'=>$_exc->getMessage()), 0, $_exc);
+			}
 	}
 
 }
