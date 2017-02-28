@@ -171,10 +171,12 @@ abstract class Defender_Core {
 						throw new Defender_Exception('В конфигурации защитника не определен драйвер для доступа к БД.');
 				}
 				self::$instance = new Defender($_user); // Формируем объект безопасности
-				self::$sess = Session::instance(self::$config['session']['type'])->regenerate(); // Генерируем новую сессию
+				if (!isset(self::$sess))
+					self::$sess = Session::instance(self::$config['session']['type']); // Генерируем новую сессию
+				self::$sess->regenerate(); // Генерируем новую сессию
 				self::$sess->set(self::$config['session']['key'], $userName); // Запоминаем в сессии имя пользователя
 				self::$sess->set(self::$config['session']['key'].'_TIME', time() + self::$config['session']['expiration']); // Запоминаем в сессии время завершения сеанса пользователя по бездействию
-				return $_defender;
+				return self::$instance;
 			} else { // Если пароль неверный, то запоминаем число попыток входа и время последней попытки
 				if(isset(self::$config['uattr']['failed_attempts']))
 					$_user->{self::$config['uattr']['failed_attempts']}++;
