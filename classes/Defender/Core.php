@@ -194,6 +194,13 @@ abstract class Defender_Core {
 		$_user = isset(self::$instance) ? self::$instance->getUser() : null;
 		return (is_object($_user) ? $_user->{self::$config['uattr']['username']} : 'Гость');
 	}
+	/**
+	 * Возвращает true, если пользователь вошел в систему, в противном случае false.
+	 * @return  boolean
+	 */
+	public static function isUser() : bool {
+		return isset(self::$instance) && is_object(self::$instance->getUser());
+	}
 
 
 	/**
@@ -286,7 +293,7 @@ abstract class Defender_Core {
 
 	/**
 	 * Инициализирует экземпляр класса Defender.
-	 * @param object $user Модель пользователя для которого необходимо получить объект безопасности.
+	 * @param ORM $user Модель пользователя для которого необходимо получить объект безопасности.
 	 */
 	protected function __construct($user) {
 		$this->user = is_object($user) ? $user : null; // Запоминаем объект информации о пользователе
@@ -307,13 +314,9 @@ abstract class Defender_Core {
 	}
 	/**
 	 * Возвращает объект, соответствующий пользователю (если таковой имеется), в противном случае вернет null.
-	 * @return object
+	 * @return ORM
 	 */
 	public function getUser() {
-		if(is_object($this->user) && self::$config['prevent_browser_cache']) { // Если объект, соответствующий пользователю загружен и установлен флаг предотвращения использования кнопки Назад после завершения сеанса
-			Response::factory()->headers('Cache-Control', 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'); // Запрещаем браузеру кэшировать данные для всех ответов, когда пользователь вошел в систему
-			Response::factory()->headers('Pragma', 'no-cache');
-		}
 		return $this->user; // Возвращаем объект текущего пользователя
 	}
 	/**
@@ -338,13 +341,6 @@ abstract class Defender_Core {
 			return (count($_result) > 0) ? true : false;
 		else
 			return (count($_result) == count($roles)) ? true : false;
-	}
-	/**
-	 * Возвращает true, если пользователь вошел в систему, в противном случае false.
-	 * @return  boolean
-	 */
-	public function isLogged() : bool {
-		return is_object($this->user); // Если пользователь представлен объектом, то возвращаем TRUE, иначе FALSE
 	}
 	/**
 	 * Осуществляет проверку возможности доступа текущего пользователя к указанному ресурсу.
