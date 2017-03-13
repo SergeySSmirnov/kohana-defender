@@ -83,11 +83,11 @@ abstract class Defender_Core {
 		self::initConfig($config); // Инициализируем конфигурацию
 		self::$sess = Session::instance(self::$config['session']['type']); // Получаем сессию текущего пользователя
 		$_lastTime = self::$sess->get(self::$config['session']['key'].'_TIME', null); // Дата и время последнего обращения пользователя к системе
+		$_defender = new Defender(self::getUserModel(empty($userName) ? self::$sess->get(self::$config['session']['key'], null) : $userName)); // Формируем объект безопасности
 		if(($_lastTime > 0) && ($_lastTime <= time())) { // Если время бездействия истекло, то закрываем сеанс и генерируем исключение
 			self::logout();
 			throw new Session_Exception('Сессия завершена в связи с бездействием более '.self::$config['session']['expiration'].' секунд.');
 		}
-		$_defender = new Defender(self::getUserModel(empty($userName) ? self::$sess->get(self::$config['session']['key'], null) : $userName)); // Формируем объект безопасности
 		if (empty($userName)) // Если запрашиваем информацию о текущем пользователе, то запоминаем его
 			self::$instance = $_defender;
 		self::$sess->set(self::$config['session']['key'].'_TIME', time() + self::$config['session']['expiration']); // Запоминаем время завершения сеанса пользователя по бездействию
