@@ -138,7 +138,6 @@ abstract class Defender_Core {
 				}
 			}
 			if(self::check($password, $_user->get(self::$config['uattr']['password']))) { // Если пароль успешно проверен, то завершаем аутентификацию
-				self::logEvent('auth', 'success', 'Пользователь :user успешно прошел аутентификацию в системе.', array(':user'=>$userName));
 				if(isset(self::$config['uattr']['failed_attempts']) && isset(self::$config['uattr']['last_attempt'])) // Если в конфигурации определен параметр число попыток входа, то сбрасываем число безуспешных попыток входа и время входа
 					$_user->set(self::$config['uattr']['failed_attempts'], 0)->set(self::$config['uattr']['last_attempt'], null);
 				if(isset(self::$config['uattr']['last_login'])) // Если в конфигурации определен параметр время последнего входа, то устанавливаем время последнего входа
@@ -152,6 +151,7 @@ abstract class Defender_Core {
 				self::$sess->regenerate(); // Генерируем новую сессию
 				self::$sess->set(self::$config['session']['key'], $userName); // Запоминаем в сессии имя пользователя
 				self::$sess->set(self::$config['session']['key'].'_TIME', time() + self::$config['session']['expiration']); // Запоминаем в сессии время завершения сеанса пользователя по бездействию
+				self::logEvent('auth', 'success', 'Пользователь :user успешно прошел аутентификацию в системе.', array(':user'=>$userName));
 				return self::$instance;
 			} else { // Если пароль неверный, то запоминаем число попыток входа и время последней попытки
 				if(isset(self::$config['uattr']['failed_attempts']))
