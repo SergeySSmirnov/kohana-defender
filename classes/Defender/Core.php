@@ -173,7 +173,7 @@ abstract class Defender_Core {
 	public static function logout() {
 		self::$sess->destroy();
 		self::$sess->regenerate();
-		self::logEvent('auth', 'success', 'Пользователь :user вышел из системы.', array(':user'=>self::$instance->getUser()->{self::$config['uattr']['username']}));
+		self::logEvent('auth', 'success', 'Пользователь :user вышел из системы.', array(':user'=>self::getUserName()));
 		self::$instance = new Defender(); // Загружаем объект безопасности для гостя
 	}
 
