@@ -252,8 +252,9 @@ abstract class Defender_Core {
 	 * @param array $values Массив значений, которые будут заменены в тексте сообщения.
 	 */
 	protected static function logEvent(string $type, string $event, string $message, array $values = null) {
-		if(isset($values[':user']))
-			$values[':user'] .= self::getUserName().' (IP: '.Request::$client_ip.')';
+		if(!isset($values[':user']))
+			$values[':user'] .= self::getUserName();
+		$values[':user'] .= ' (IP: '.Request::$client_ip.')';
 		if(isset(self::$config['logging'][$type][$event]) && (self::$config['logging'][$type][$event] !== false))
 			Kohana::$log->add(self::$config['logging'][$type][$event], mb_strtoupper($type.'_'.$event).' = '.$message, $values, array('no_back_trace'=>true));
 	}
@@ -295,7 +296,7 @@ abstract class Defender_Core {
 	 * Инициализирует экземпляр класса Defender.
 	 * @param ORM $user Модель пользователя для которого необходимо получить объект безопасности.
 	 */
-	protected function __construct($user) {
+	protected function __construct($user = null) {
 		$this->user = is_object($user) ? $user : null; // Запоминаем объект информации о пользователе
 		$_rolesModel = null;
 		if(is_object($user))
