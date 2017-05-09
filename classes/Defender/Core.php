@@ -417,7 +417,7 @@ abstract class Defender_Core {
 			$_userRoles = $this->user->get(self::$config['uattr']['roles'])->find_all()->as_array(self::$config['rattr']['id']);
 			foreach((array)$role as $_r) {
 				$_roleModelID = self::getRoleModel($_r)->get(self::$config['rattr']['id']);
-				if(!array_key_exists($_roleModelID, $_userRoles))
+				if(array_key_exists($_roleModelID, $_userRoles))
 					$this->user->remove(self::$config['uattr']['roles'], array($_roleModelID));
 			}
 		}
