@@ -238,7 +238,7 @@ abstract class Defender_Core {
 		if($role instanceof ORM)
 			return $role;
 		else {
-			$_model = ORM::factory($config['role_model'], (is_string($role) ? array($config['rattr']['rolecode']=>$role) : $role)); // В зависимости от типа данных, представленных в $role ищем по имени или ID роли
+			$_model = ORM::factory(self::$config['role_model'], (is_string($role) ? array(self::$config['rattr']['rolecode']=>$role) : $role)); // В зависимости от типа данных, представленных в $role ищем по имени или ID роли
 			if (!$_model->loaded())
 				throw new Defender_Exception('Указанная запись роли не найдена.');
 		}
