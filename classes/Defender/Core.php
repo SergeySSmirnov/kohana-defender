@@ -7,12 +7,12 @@ defined('SYSPATH') or die('No direct access allowed.');
  * Больше информации смотрите на сайте: http://codahale.com/how-to-safely-store-a-password/
  * Основан на Kohana's AUTH, Fred Wu's AUTHLITE и Woody Gilk's Bonafide.
  * @package Defender
- * @copyright  (c) 2011 Wouter
- * @copyright  (c) 2011 Woody Gilk
- * @copyright  (c) 2011 Fred Wu
- * @copyright  (c) 2011 Kohana Team
- * @copyright  (c) 2010-NOW RUSproj, Sergey S. Smirnov
- * @license    MIT
+ * @copyright (c) 2011 Wouter
+ * @copyright (c) 2011 Woody Gilk
+ * @copyright (c) 2011 Fred Wu
+ * @copyright (c) 2011 Kohana Team
+ * @copyright (c) 2010-18 RUSproj, Sergey S. Smirnov
+ * @license MIT
  */
 abstract class Defender_Core {
 
@@ -382,8 +382,11 @@ abstract class Defender_Core {
 	 * @param string $password Пароль, который необходимо проверить.
 	 * @return boolean Результат выполнения проверки пароля.
 	 */
-	public function checkPassword($password) {
-		return (is_object($this->user) && self::check($password, $this->user->get(self::$config['uattr']['password'])));
+	public function checkPassword($password) : bool {
+		if (!is_object($this->user))
+			return false;
+		$_passwHash = $this->user->get(self::$config['uattr']['password']);
+		return self::check($password, $_passwHash);
 	}
 	/**
 	 * Удаляет запись пользователя.
