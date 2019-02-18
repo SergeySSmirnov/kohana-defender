@@ -6,4 +6,4 @@
  * @author Сергей С. Смирнов
  * @copyright (c) 2010-18 RUSproj, Sergey S. Smirnov
  */
- final class Defender extends Defender_Core { }
+ class Defender extends Defender_Core { }
