@@ -15,8 +15,7 @@
 	"description" : "Allows apply authentication and authorization capabilities on your site.",
 	"license" : "MIT",
 	"require" : {
-		"php" : ">=7.1",
-		"koseven/koseven" : ">=3.3.9"
+		"php" : ">=7.1"
 	},
 	"support" : {
 		"email" : "sergeyssmirnov@mail.ru"
