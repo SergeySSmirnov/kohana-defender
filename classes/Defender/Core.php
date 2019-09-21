@@ -41,11 +41,11 @@ abstract class Defender_Core
     protected static $sess = null;
 
     /**
-     * Генерирует bcrypt хэш для указанных данных.
-     * @param string $input Значение хэша.
-     * @param string $salt Соль (опционально, будет сгенерирована в случае отсутствия).
-     * @param int $cost Мощность хэша (опционально, в случае отсутствия будет взято из конфигурации).
-     * @return string Хэш указанных данных.
+     * Generate bcrypt hash for data.
+     * @param string $input Data.
+     * @param string $salt Solt (optional, will be generated if null).
+     * @param int $cost Hah power (optional, if null will be loaded from config).
+     * @return string
      */
     public static function hash(string $input, string $salt = null, int $cost = null): string {
         if (empty($salt)) { // Если не указана соль, то генерируем ее
@@ -133,11 +133,11 @@ abstract class Defender_Core
             self::initConfig($config); // Инициализируем конфигурацию
             $_user = self::getUserModel($userName); // Получаем модель пользователя
             if (!is_object($_user)) { // Если информацию о пользователе не удалось загрузить, генерируем исключение
-                self::logEvent('auth', 'filed', 'Невозможно загрузить информацию о пользователе :user.', [':user' => $userName]);
+                self::logEvent('auth', 'failed', 'Невозможно загрузить информацию о пользователе :user.', [':user' => $userName]);
                 throw new Defender_Exception('Вы исчерпали лимит попыток доступа.');
             }
             if (!$_user->get(self::$config['uattr']['active'])) { // Если учётная запись деактивирована, то генерируем исключение
-                self::logEvent('auth', 'filed', 'Попытка входа в систему пользователя :user, учетная запись которого была деактивирована ранее системным администратором.', [':user' => $userName]);
+                self::logEvent('auth', 'failed', 'Попытка входа в систему пользователя :user, учетная запись которого была деактивирована ранее системным администратором.', [':user' => $userName]);
                 throw new Defender_Exception('Вы не можете войти в систему, так как ваша учетная запись деактивирована системным администратором.');
             }
             if (isset(self::$config['uattr']['failed_attempts']) && // Если в конфигурации определен параметр число безуспешных попыток входа
@@ -150,7 +150,7 @@ abstract class Defender_Core
                     foreach (array_reverse(self::$config['rate_limits'], true) as $attempts => $time) { // Пробегаемся по массиву
                         if ($_attempt > $attempts) { // Если номер попытки входа больше чем разрешенное число попыток
                             if ((strtotime($_user->get(self::$config['uattr']['last_attempt'])) + $time) > time()) { // Если время блокировки очередно попытки входа не закончилось, то генерируем исключение
-                                self::logEvent('auth', 'filed', 'Пользователь :user исчерпал лимит попыток входа в систему. Попытка: :attempt, Время блокировки: :time.', [':user' => $userName, ':attempt' => $_attempt, ':time' => $time]);
+                                self::logEvent('auth', 'failed', 'Пользователь :user исчерпал лимит попыток входа в систему. Попытка: :attempt, Время блокировки: :time.', [':user' => $userName, ':attempt' => $_attempt, ':time' => $time]);
                                 throw new Defender_Exception('Вы исчерпали лимит попыток доступа. Попытайтесь позже через ' . $time . ' секунд.');
                             } else { // Иначе переходим к следующей записи соответствия
                                 break;
@@ -187,7 +187,7 @@ abstract class Defender_Core
                     $_user->set(self::$config['uattr']['last_attempt'], Date::formatted_time('now', 'Y-m-d H:i:s'));
                 }
                 $_user->save(); // Сохраняем новые данные
-                self::logEvent('auth', 'filed', 'Пользователь :user провалил аутентификацию.', [':user' => $userName]);
+                self::logEvent('auth', 'failed', 'Пользователь :user провалил аутентификацию.', [':user' => $userName]);
                 throw new Defender_Exception('Неверно введено имя пользователя или пароль. Повторите попытку ввода.');
             }
         } catch (Exception $e) { // При ошибке обнуляем права доступа пользователя
@@ -284,7 +284,7 @@ abstract class Defender_Core
     /**
      * Осуществляет запись сообщения о произошедшем событии в системный журнал событий.
      * @param string $type Тип произошедшего события (параметры: auth или access как описано в конфигурационном файле).
-     * @param string $event Результат операции (success или filed).
+     * @param string $event Результат операции (success или failed).
      * @param string $message Описание произошедшего события.
      * @param array $values Массив значений, которые будут заменены в тексте сообщения.
      */
@@ -358,7 +358,7 @@ abstract class Defender_Core
     }
 
     /**
-     * Возвращает объект, соответствующий пользователю (если таковой имеется), в противном случае вернет null.
+     * Return model of the current user. Return null if user was not found.
      * @return ORM
      */
     public function getUser() {
@@ -417,8 +417,8 @@ abstract class Defender_Core
     }
 
     /**
-     * Возвращает признак того, что текущий пользователь является суперадминистратором.
-     * @return boolean Признак того, что текущий пользователь является суперадминистратором.
+     * Return is SA user or not.
+     * @return boolean
      */
     public function isSA(): bool {
         return $this->hasRole('sa');
@@ -444,7 +444,7 @@ abstract class Defender_Core
     }
 
     /**
-     * Удаляет запись пользователя.
+     * Remove user record from DB.
      */
     public function delete() {
         if (is_object($this->user)) { // Если пользователь существует, то пытаемся удалить его
@@ -453,9 +453,9 @@ abstract class Defender_Core
     }
 
     /**
-     * Осуществляет добавление роли(ей) для пользователя.
-     * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
-     * @throws Defender_Exception Генерируется в том случае, если не определён драйвер для доступа к БД или указанная запись не найдена.
+     * Add role or roles to the user.
+     * @param int|string|array|ORM $role Role ID or name.
+     * @throws Defender_Exception Thrown if specified record not found or error occurred.
      */
     public function addRole($role) {
         if (is_object($this->user)) { // Если пользователь существует, то пытаемся удалить его
@@ -470,9 +470,8 @@ abstract class Defender_Core
     }
 
     /**
-     * Осуществляет удаление роли(ей) для пользователя.
-     * @param int|string|array|ORM $role Идентификатор или название добавляемой роли.
-     * @param string $confn Имя используемой конфигурации.
+     * Remove user role or roles.
+     * @param int|string|array|ORM $role Role ID or name.
      */
     public function removeRole($role) {
         if (is_object($this->user)) { // Если пользователь существует, то пытаемся удалить его
