@@ -1,0 +1,36 @@
+{
+	"keywords" : [
+		"kohana",
+		"kohana module",
+		"kohana module auth",
+		"kohana module defender"
+	],
+	"autoload" : {
+		"psr-4" : {
+			"RUSproj\\Kohana\\Defender\\" : "classes"
+		}
+	},
+	"name" : "rusproj\\kohana\\defender",
+	"type" : "kohana-module",
+	"description" : "Allows apply authentication and authorization capabilities on your site.",
+	"license" : "MIT",
+	"require" : {
+		"php" : ">=7.1",
+		"koseven/koseven" : ">=3.3.9"
+	},
+	"support" : {
+		"email" : "sergeyssmirnov@mail.ru"
+	},
+	"repositories" : [{
+			"type" : "git",
+			"url" : "https://github.com/SergeySSmirnov/kohana-defender",
+			"name" : "RUSproj/kohana-defender"
+		}
+	],
+	"authors" : [{
+			"name" : "Sergei Smirnov",
+			"email" : "sergeissmirnov@mail.ru",
+			"role" : "developer"
+		}
+	]
+}

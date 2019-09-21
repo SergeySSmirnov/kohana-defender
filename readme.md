@@ -1,4 +1,7 @@
-This module allow use on your site Authentication and Authorization capabilities.
+#Kohana defender module
+
+Allows apply authentication and authorization capabilities on your site.
+
 This project based on:
 - https://github.com/Wouterrr/A1;
 - https://github.com/Wouterrr/ACL;

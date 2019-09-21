@@ -1,9 +1,17 @@
-<?php defined('SYSPATH') OR die('No direct access allowed.');
+<?php
+namespace RUSproj\Kohana\Defender\Defender;
+
+use Kohana_Exception;
 
 /**
- * Класс, представляющий исключение, генерируемое модулем Defender.
+ * Exception which thrown by Defender module.
+ *
  * @package Defender
- * @copyright (c) 2010-18 RUSproj, Sergey S. Smirnov
- * @author Сергей С. Смирнов
+ * @author Sergei S. Smirnov
+ * @copyright (c) 2010-19 RUSproj, Sergei S. Smirnov
+ * @license MIT
  */
-class Defender_Exception extends Kohana_Exception { }
+class Defender_Exception extends Kohana_Exception
+{
+
+}

@@ -1,9 +1,17 @@
-<?php defined('SYSPATH') OR die('No direct access allowed.');
+<?php
+namespace RUSproj\Kohana\Defender;
+
+use RUSproj\Kohana\Defender\Defender\Defender_Core;
 
 /**
- * Представляет класс модуля пользовательской аутентификации и авторизации.
+ * User authentication and authorization cabilities.
+ *
  * @package Defender
- * @author Сергей С. Смирнов
- * @copyright (c) 2010-18 RUSproj, Sergey S. Smirnov
+ * @author Sergei S. Smirnov
+ * @copyright (c) 2010-19 RUSproj, Sergei S. Smirnov
+ * @license MIT
  */
- class Defender extends Defender_Core { }
+class Defender extends Defender_Core
+{
+
+}
