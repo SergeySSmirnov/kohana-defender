@@ -10,7 +10,7 @@
 			"RUSproj\\Kohana\\Defender\\" : "classes"
 		}
 	},
-	"name" : "rusproj\\kohana\\defender",
+	"name" : "rusproj/kohana/defender",
 	"type" : "kohana-module",
 	"description" : "Allows apply authentication and authorization capabilities on your site.",
 	"license" : "MIT",
