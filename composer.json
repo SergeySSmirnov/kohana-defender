@@ -15,21 +15,19 @@
 	"description" : "Allows apply authentication and authorization capabilities on your site.",
 	"license" : "MIT",
 	"require" : {
-		"php" : ">=7.1"
+		"php" : ">=7.1",
+		"composer/installers" : "~1.0"
 	},
 	"support" : {
 		"email" : "sergeyssmirnov@mail.ru"
 	},
-	"repositories" : [{
-			"type" : "git",
-			"url" : "https://github.com/SergeySSmirnov/kohana-defender",
-			"name" : "RUSproj/kohana-defender"
-		}
-	],
 	"authors" : [{
 			"name" : "Sergei Smirnov",
 			"email" : "sergeissmirnov@mail.ru",
 			"role" : "developer"
 		}
-	]
+	],
+	"extra" : {
+		"installer-name" : "defender"
+	}
 }
