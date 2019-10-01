@@ -1,5 +1,5 @@
 <?php
-namespace RUSproj\Kohana\Defender\Defender;
+namespace RUSproj\Kohana\Defender;
 
 use Kohana_Exception;
 

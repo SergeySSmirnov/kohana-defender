@@ -1,7 +1,10 @@
 <?php
 namespace RUSproj\Kohana\Defender\Defender;
 
-use RUSproj\Kohana\Defender\Defender;
+use RUSproj\Kohana\Defender\ {
+    Defender,
+    Defender_Exception
+};
 use Arr, Config_Group, Date, Exception, Kohana, Kohana_Exception, ORM, Request, Session, Session_Exception, Text;
 
 /**
@@ -71,11 +74,7 @@ abstract class Defender_Core
     public static function create(string $userName, string $userPasswd, bool $userActive = FALSE, array $roles = [], $config = 'defender'): Defender {
         self::initConfig($config); // Инициализируем конфигурацию
         if (!is_object(self::getUserModel($userName))) { // Если пользователя не существует, то создаём его
-            ORM::factory(ucfirst(self::$config['user_model']))
-                ->set(self::$config['uattr']['username'], $userName)
-                ->set(self::$config['uattr']['password'], $userPasswd)
-                ->set(self::$config['uattr']['active'], $userActive)
-                ->create();
+            ORM::factory(ucfirst(self::$config['user_model']))->set(self::$config['uattr']['username'], $userName)->set(self::$config['uattr']['password'], $userPasswd)->set(self::$config['uattr']['active'], $userActive)->create();
         }
         $_defender = self::instance($userName);
         $_defender->addRole($roles); // Назначаем пользователю права
@@ -141,8 +140,8 @@ abstract class Defender_Core
                 throw new Defender_Exception('Вы не можете войти в систему, так как ваша учетная запись деактивирована системным администратором.');
             }
             if (isset(self::$config['uattr']['failed_attempts']) && // Если в конфигурации определен параметр число безуспешных попыток входа
-                isset(self::$config['uattr']['last_attempt']) && // и в конфигурации определен параметр дата и время последней попытки входа
-                (count(Arr::get(self::$config, 'rate_limits', [])) > 0)) // и в конфигурации определен массив соответствия числа попыток входа и времени блокировки (для защиты от подбора паролей)
+            isset(self::$config['uattr']['last_attempt']) && // и в конфигурации определен параметр дата и время последней попытки входа
+            (count(Arr::get(self::$config, 'rate_limits', [])) > 0)) // и в конфигурации определен массив соответствия числа попыток входа и времени блокировки (для защиты от подбора паролей)
             {
                 $_attempt = 1 + (int)$_user->get(self::$config['uattr']['failed_attempts']); // Увеличиваем число безуспешных попыток входа
                 if (($_attempt > 1) && !empty($_user->get(self::$config['uattr']['last_attempt']))) { // Если уже была попытка входа
