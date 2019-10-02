@@ -221,6 +221,9 @@ abstract class Defender_Core
      * @return string Имя учётной записи текущего пользователя.
      */
     public static function getUserName(): string {
+        if (!isset(self::$instance)) {
+            self::instance();
+        }
         $_user = isset(self::$instance) ? self::$instance->getUser() : null;
         return (is_object($_user) ? $_user->{self::$config['uattr']['username']} : 'Гость');
     }
@@ -230,6 +233,9 @@ abstract class Defender_Core
      * @return  boolean
      */
     public static function isUser(): bool {
+        if (!isset(self::$instance)) {
+            self::instance();
+        }
         return isset(self::$instance) && is_object(self::$instance->getUser());
     }
 
